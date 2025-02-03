@@ -1,0 +1,996 @@
+import {
+  Avatar,
+  AvatarGroup,
+  Badge,
+  Box,
+  Breadcrumbs,
+  ButtonGroup,
+  Chip,
+  Divider,
+  Grid,
+  Input,
+  Paper,
+  Stack,
+  Typography
+} from "@mui/material";
+import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { baseURL } from "../../api";
+import { Icon } from "../../utils/MuiIcons/Icon";
+import { useNavigate } from "react-router-dom";
+import { validateTextField, globalvalidateTextField } from "../../utils/validations/Validation";
+import TableComponent from "../TableComponent/TableComponent";
+import DataGridComponent from "../DataGridComponent/DataGridComponent";
+import BasicTabs from "../TabComponent/TabComponent";
+import FormBar from "./formmenu"; 
+import DataTableComponent from "../DataTableComponent/DataTableComponent";
+
+import {
+  renderTypography,
+  renderTextfield,
+  renderpasswordTextfield,
+  renderlinkfield,
+  renderAutoComplete,
+  rendercheckbox,
+  renderTransferList,
+  renderRadioGroup,
+  renderSelect,
+  renderImage,
+  renderDatecomponent,
+  renderButtonComponent,
+  renderCardComponent,
+  avatarcomponent,
+  rendervartextcomponent,
+  renderglobaltextcomponent,
+  renderdialogboxcomponent
+} from "../hooks/ComponentsData";
+import { serverAddress } from "../../config";
+import ListItemdata from "../../component/ListItem/ListItem";
+import MessageError from "./MessageError";
+import CustomAlert from "../../component/AlertComponent/Alert";
+
+const Form = ({ route }) => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState();
+  const [textValue, setTextValue] = useState({});
+  const [varValue, setVarValue] = useState({});
+  const [error, setError] = useState({});
+  const [index, setIndex] = useState(-1);
+  const [tablesampledata, SetTabledata] = useState();
+  const [summaryfields, setsummaryfields] = useState();
+  const [freeformdata, setFreeformfield] = useState();
+  const [defaultTableMode, setDefaultTableMode] = useState("");
+  const [defaultTableName, setDefaultTableName] = useState("");
+  const [freeformTableMode, setFreeformTableMode] = useState("");
+  const [freeformTableName, setFreeformTableName] = useState("");
+  const [filterDefault, setfilterDefault] = useState();
+  const [filterFreeform, setfilterfreeForm] = useState();
+  const [isSubmited, setIssubmited] = useState(false);
+  const [successMessage, setmessage] = useState("");
+  const [globalError, setGlobalError] = useState("");
+  const [tableMianData, setTablemaindata] = useState("");
+  const [validaterules, setValidationRules] = useState({});
+  const [resultData, setResultData] = useState("");
+  // const [isError, setIsError] = useState(false);
+  const [recordData, setRecordData] = useState({}); {/* rfg 9 may 23*/}
+
+  let urlCapture = window.location.pathname + window.location.search;
+
+  // dialog
+  const [open, setOpen] = React.useState(false);
+  const [dialogMode, setDialogMode] = React.useState();
+
+  const handleClickOpen = mode => {
+    setDialogMode(mode);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const [company, setCompany] = useState({});
+  const [user, setUser] = useState({});
+  const [format, setFormat] = useState([]);
+
+  useEffect(() => {
+    axios
+      .get(
+        (`${baseURL}${route}` && route === undefined) || route !== urlCapture
+          ? `${baseURL}${urlCapture}`
+          : `${baseURL}${route}`
+      )
+      .then(result => {
+        setFormData(result?.data?.data);
+      })
+      .catch(() => {
+        setGlobalError(error);
+      });
+  }, [route, urlCapture]);
+
+  //
+
+  const getFieldValue = sName => {
+    const [orgKey, fieldName] = sName?.split(".") ?? [];
+
+    switch (orgKey) {
+      case "organization":
+        return company?.data?.[fieldName];
+      case "user":
+        return user?.data?.[fieldName];
+      case "format":
+        return format?.data?.[fieldName];
+      default:
+        return undefined;
+    }
+  };
+
+  //  working
+
+  useEffect(() => {
+    Promise.all([
+      axios.get(`${serverAddress}/getCompanyDetail`),
+      axios.get(`${serverAddress}/getUserDetail`),
+      axios.get(`${serverAddress}/getFormatDetail`)
+    ])
+      .then(([companyResponse, userResponse, formatResponse]) => {
+        setCompany(companyResponse.data);
+        setUser(userResponse.data);
+        setFormat(formatResponse.data);
+      })
+      .catch(() => {
+        setGlobalError(error);
+      });
+  }, [formData, route, urlCapture]);
+
+  // edit table form.sFormSource
+  const url = formData?.form?.sFormSource;
+
+  useEffect(() => {
+    if (
+      (url !== undefined && formData?.form?.sFormAction === "EDIT") ||
+      formData?.form?.sFormAction === "VIEW"
+    ) {
+      axios
+        .get(`${baseURL}${url}`)
+        .then(response => {
+          setRecordData(response.data); {/* rfg 9 may 23*/}
+          const data = response.data.data[0].mainrecord;
+          const initialValues = {};
+          for (const key in data) {
+            initialValues[key] = data[key];
+          }
+          setTextValue(initialValues);
+          setVarValue(initialValues);
+        })
+        .catch(() => {
+          setGlobalError(error);
+        });
+    } else {
+      setTextValue({});
+    }
+  }, [url, formData]);
+
+  useEffect(() => {
+    const taxtvaluecols = {};
+    const validate = {};
+
+    formData?.details?.forEach(data => {
+      switch (data?.component?.sType) {
+        case "TEXTFIELD":
+        case "AUTOCOMPLETE":
+        case "CHECKBOX":
+        case "TRANSFERLIST":
+        case "RADIOGROUP":
+        case "SELECT":
+        case "IMAGE":  {/* rfg 9 may 23*/}
+        case "DATAGRID":
+          if (data.component?.sType === "CHECKBOX") {
+            taxtvaluecols[data.component?.sName] = false;
+          } else if (
+            (data.component?.sType === "TEXTFIELD" && data?.validation?.sType === "COUNTER") ||
+            data?.validation?.sType === "FIXVALUE"
+          ) {
+            taxtvaluecols[data.component?.sName] = data?.component?.sDefaultValue;
+          } else if (
+            data.component?.sType === "RADIOGROUP" &&
+            data?.component?.sProps?.defaultValue
+          ) {
+            taxtvaluecols[data.component?.sName] = data?.component?.sProps?.defaultValue;
+          } else {
+            taxtvaluecols[data.component?.sName] = "";
+            validate[data.component?.sName] = data?.validation;
+          }
+          break;
+        case "DATETIME":
+          taxtvaluecols[data.component.sName] = data?.component?.sDefaultValue;
+          break;
+        default:
+          break;
+      }
+    });
+
+    setValidationRules(validate);
+    setTextValue(taxtvaluecols);
+  }, [formData, urlCapture, isSubmited]);
+
+  const [summerydata, setSummerydata] = useState();
+
+  useEffect(() => {
+    const summaryObj = summaryfields || "";
+
+    const summaryArr = Object.entries(summaryObj).map(([key, value]) => {
+      if (key === "summ_handling") {
+        return {
+          sSummaryID: key,
+          sInputValue: value,
+          sValue: summaryObj?.summ_handleTotal
+        };
+      } else if (key === "summ_shipping") {
+        return {
+          sSummaryID: key,
+          sInputValue: value,
+          sValue: summaryObj?.summ_shipTotal
+        };
+      } else if (key === "summ_discount") {
+        return {
+          sSummaryID: key,
+          sInputValue: value,
+          sValue: summaryObj?.summ_discountTotal
+        };
+      } else if (key === "summ_adjustment") {
+        return {
+          sSummaryID: key,
+          sInputValue: value,
+          sValue: summaryObj?.summ_adjustmentTotal
+        };
+      } else {
+        return {
+          sSummaryID: key,
+          sInputValue: value
+        };
+      }
+    });
+
+    const resultArr = [];
+    tableMianData?.length > 0 &&
+      tableMianData?.map(tableObj => {
+        summaryArr?.map(summaryObj => {
+          if (tableObj.sSummaryID === summaryObj.sSummaryID) {
+            if (summaryObj?.sValue) {
+              if (tableObj?.sFieldInput === "TEXTFIELD" || tableObj?.sFieldInput === "SELECT") {
+                resultArr.push({
+                  sSummaryID: tableObj.sSummaryID,
+                  sInputValue: summaryObj.sInputValue,
+                  sValue: summaryObj?.sValue
+                });
+              } else {
+                resultArr.push({
+                  sSummaryID: tableObj.sSummaryID,
+
+                  sValue: summaryObj.sInputValue
+                });
+              }
+            } else {
+              if (tableObj?.sFieldInput === "TEXTFIELD" || tableObj?.sFieldInput === "SELECT") {
+                resultArr.push({
+                  sSummaryID: tableObj.sSummaryID,
+                  sInputValue: summaryObj.sInputValue
+                });
+              } else {
+                resultArr.push({
+                  sSummaryID: tableObj.sSummaryID,
+
+                  sValue: summaryObj.sInputValue
+                });
+              }
+              // resultArr.push({
+              //   sSummaryID: tableObj.sSummaryID,
+              //   sInputValue: summaryObj.sInputValue,
+              // });
+            }
+          }
+        });
+      });
+
+    let value = [];
+    resultArr.map(item => {
+      value.push(item);
+    });
+
+    setSummerydata(value);
+  }, [summaryfields]);
+
+  const handleCancel = destination => {
+    navigate(destination);
+  };
+
+  //const handleNext = nextaction => {  rfg 17 May 23
+    const handleNext =   (destination, nextaction) => {
+    navigate(nextaction);
+  };
+
+  useEffect(() => {
+    [formData].map(item => {
+      item &&
+        item.details.forEach(data => {
+          switch (data?.component?.sType) {
+            case "TEXTFIELD":
+              // Do something for TEXTFIELD
+              break;
+            case "AUTOCOMPLETE":
+              // Do something for AUTOCOMPLETE
+              break;
+            case "CHECKBOX":
+              // Do something for CHECKBOX
+              break;
+            case "RADIOGROUP":
+              // Do something for RADIOGROUP
+              break;
+            case "SELECT":
+              // Do something for SELECT
+              break;
+            case "DATETIME":
+              // Do something for DATETIME
+              break;
+            case "INPUTTABLE":
+              if (data?.component?.options.mode === "DEFAULT") {
+                setDefaultTableMode(data?.component?.options.mode);
+                setDefaultTableName(data.component.sName);
+              } else if (data?.component?.options.mode === "FREEFORM") {
+                setFreeformTableMode(data?.component?.options.mode);
+                setFreeformTableName(data.component.sName);
+              }
+              break;
+            default:
+              // Do something for unknown sType values
+              break;
+          }
+        });
+    });
+  }, [formData, isSubmited]);
+
+  useEffect(() => {
+    if (tablesampledata) {
+      const tabledata = tablesampledata;
+      const filterDefaultData = tabledata.map(({ ...rest }) => rest);
+      setfilterDefault(filterDefaultData);
+    }
+    if (freeformdata) {
+      const tablefreeform = freeformdata;
+      const filterFreeformData = tablefreeform.map(({ ...rest }) => rest);
+      setfilterfreeForm(filterFreeformData);
+    }
+  }, [tablesampledata, freeformdata]);
+
+  const handleSubmit = (destination, nextaction) => {
+    const metadata =
+      formData && formData.form
+        ? {
+            sFormname: formData.form.id,
+            sFormAction: formData.form.sFormAction,
+            sPrimarykey: formData.form.sPrimaryKey,
+            id: formData.form.id,
+            sPrimaryTable: formData.form.sPrimaryTable,
+            sFormType: formData.form.sFormType,
+            sPrimarykeyvalue: document.getElementById(formData.form.sPrimaryKey)?.value
+          }
+        : {};
+
+    let data = {
+      metadata: metadata,
+      data: [
+        {
+          mainrecord: textValue
+        }
+      ]
+    };
+
+    if (defaultTableMode && !freeformTableMode) {
+      data.data.push({
+        tablerecords: [
+          {
+            sInputTableName: defaultTableName,
+            sInputTableMode: defaultTableMode,
+            tablesummary: summerydata,
+            tabledetails: filterDefault
+          }
+        ]
+      });
+    } else if (freeformTableMode && !defaultTableMode) {
+      data.data.push({
+        tablerecords: [
+          {
+            sInputTableName: freeformTableName,
+            sInputTableMode: freeformTableMode,
+            tabledetails: filterFreeform
+          }
+        ]
+      });
+    } else if (defaultTableMode && freeformTableMode) {
+      data.data.push({
+        tablerecords: [
+          {
+            sInputTableName: defaultTableName,
+            sInputTableMode: defaultTableMode,
+            tablesummary: summerydata,
+            tabledetails: filterDefault
+          },
+          {
+            sInputTableName: freeformTableName,
+            sInputTableMode: freeformTableMode,
+            tabledetails: filterFreeform
+          }
+        ]
+      });
+    }
+
+    // Remove tablerecords property if it exists but is empty
+    if (data.data[1] && data.data[1].tablerecords.length === 0) {
+      delete data.data[1].tablerecords;
+    }
+
+    const uri = baseURL + destination;
+
+    axios
+      .post(uri, data)
+      .then(result => {
+        if (result.data) {
+          if (result.data.metadata.status == "OK") {
+            setIssubmited(true);
+            setmessage("Submitted Successfully");
+            navigate(nextaction);
+            setTextValue({});
+            SetTabledata("");
+            setError(null);
+            setsummaryfields("");
+            setFreeformfield("");
+            setDefaultTableMode("");
+            setDefaultTableName("");
+            setFreeformTableMode("");
+            setFreeformTableName("");
+            setDialogMode();
+            setOpen(false);
+            setResultData("OK");
+          } else if (result.data.metadata.status == "ERROR") {
+            setResultData("ERROR");
+            setmessage(result.data.metadata.msg);
+          } else if (result.data.metadata.status == "WARNING") {
+            setResultData("WARNING");
+            setmessage(result.data.metadata.msg);
+          } else {
+            setResultData("New application version is available");
+            setmessage(result.data.metadata.msg);
+          }
+        }
+      })
+      .catch(() => {
+        setGlobalError(error);
+      });
+  };
+
+  const handleclickdata = (e, mode, uri) => {
+    if (mode.options.others2 === "handleCancel") {
+      handleCancel(uri.sAction);
+    } else if (mode.options.others2 === "handleSubmit") {
+      const errors = globalvalidateTextField(textValue, validaterules);
+
+      if (Object.keys(errors).length > 0) {
+        setError(prevError => ({
+          ...prevError,
+          ...errors
+        }));
+
+        return;
+      }
+
+      handleSubmit(uri.sDataSource, uri.sAction);
+    } else if (mode.options.others2 === "handleNext") {
+      handleNext(uri.sDataSource, uri.sAction);
+    } else if (mode.options.others2 === "handleDialog") {
+      handleClickOpen(mode);
+    } else if (mode.options.submode === "cancel") {
+      handleClose();
+    } else if (mode.options.submode === "submit") {
+      handleSubmit(uri.sDataSource, uri.sAction);
+    } else if (mode.options.submode !== "cancel" && mode.options.submode !== "submit") {
+      handleNext(uri.sDataSource, uri.sAction);
+    }
+  };
+  // clocse
+
+  useEffect(() => {
+    if (urlCapture) {
+      SetTabledata("");
+      setTextValue({});
+      setError(null);
+      setsummaryfields("");
+      setFreeformfield("");
+      setDefaultTableMode("");
+      setDefaultTableName("");
+      setFreeformTableMode("");
+      setFreeformTableName("");
+      setResultData("");
+      setmessage("");
+      setDialogMode();
+      setOpen(false);
+    }
+  }, [urlCapture]);
+
+  useEffect(() => {
+    const isTextValueEmpty = Object.keys(textValue).length === 0;
+
+    if (isTextValueEmpty) {
+      setIssubmited(false);
+    }
+  }, [textValue]);
+
+  const handleTextValue = (event, ind, validate) => {
+    const { name, value } = event.target;
+    setIndex(ind);
+    setTextValue({ ...textValue, [name]: value });
+
+    const trimmedValue = value.trim();
+    const error = validateTextField(trimmedValue, validate);
+
+    setError(prevError => {
+      const newError = { ...prevError, [name]: error };
+      return newError;
+    });
+  };
+
+  const handletabledata = e => {
+    SetTabledata(e);
+  };
+  const tablesummaryfields = (e, data) => {
+    setTablemaindata(data?.summaryfields?.sSummaryDetails);
+
+    setsummaryfields(e);
+  };
+  const tablefreeformfield = e => {
+    setFreeformfield(e);
+  };
+
+  const handledatechange = (e, name) => {
+    setTextValue({ ...textValue, [name]: e });
+  };
+
+  const autoCompleteOnchange = (e, name) => {
+    let { value = "" } = e || "";
+    setTextValue({ ...textValue, [name]: value });
+  };
+  const handleCheckboxOnchange = (e, name) => {
+    setTextValue({ ...textValue, [name]: e });
+  };
+  const handleselectOnchange = (e, name) => {
+    setTextValue({ ...textValue, [name]: e });
+  };
+  const handleradiovalue = (e, name) => {
+    setTextValue({ ...textValue, [name]: e });
+  };
+
+  const getfilename = (files, b, mode) => {
+    const fileNames = [];
+    for (let i = 0; i < files.length; i++) {
+      const fileName = files[i]?.name;
+      fileNames.push(fileName);
+    }
+
+    if (mode === "SINGLE") {
+      setTextValue({ ...textValue, [b]: fileNames[0] });
+    } else {
+      setTextValue({ ...textValue, [b]: fileNames });
+    }
+  };
+
+  //List 1
+  function useListData(dataDefault) {
+    const [listData, setListData] = useState([]);
+
+    useEffect(() => {
+      axios
+        .get(`${baseURL}${dataDefault}`)
+        .then(result => {
+          setListData(result.data);
+        })
+        .catch(() => {
+          setGlobalError(error);
+        });
+    }, [dataDefault]);
+
+    return listData;
+  }
+
+  function DefaultComponent({ dataDefault, data }) {
+    const listItems = useListData(dataDefault);
+    return ListItemdata(format?.data, data, listItems);
+  }
+  //
+  // List2
+  function ListAvatar({ dataDefault, data }) {
+    const listAvatarItem = useListData(dataDefault);
+    return ListItemdata(format?.data, data, listAvatarItem);
+  }
+
+  // List 3
+  function ListIcon({ dataDefault, data }) {
+    const icon = data?.fieldIcon?.replace("Icon", "");
+    const listIconItem = useListData(dataDefault);
+    return ListItemdata(format?.data, data, listIconItem, icon);
+  }
+  //List 4
+  function ListAvatarIconItem({ dataDefault, data }) {
+    const listAvatarIcon = useListData(dataDefault);
+    return ListItemdata(format?.data, data, listAvatarIcon);
+  }
+
+  const renderComponent = componentData => {
+    return componentData?.map((data, ind) => {
+      switch (data?.component?.sType) {
+        case "TYPOGRAPHY":
+          return renderTypography(data);
+        case "TEXTFIELD":
+          return renderTextfield(data, ind, index, error, textValue, handleTextValue);
+        case "PASSWORDTEXTFIELD":
+          return renderpasswordTextfield(data, ind, textValue, handleTextValue, index, error);
+        case "LINK":
+          return renderlinkfield(data);
+
+        case "AUTOCOMPLETE":
+          return renderAutoComplete(data, autoCompleteOnchange);
+
+        case "CHECKBOX":
+          return rendercheckbox(data, handleCheckboxOnchange, textValue);
+
+        case "TRANSFERLIST":
+          return renderTransferList(data);
+
+        case "RADIOGROUP":
+          return renderRadioGroup(data, handleradiovalue);
+
+        case "SELECT":
+          return renderSelect(data, handleselectOnchange);
+
+        case "IMAGE":
+          return renderImage(data, (a, b, mode) => getfilename(a, b, mode));
+
+        case "DATETIME":
+          return renderDatecomponent(data, handledatechange, textValue, formData);
+
+        case "INPUTTABLE":
+          return (
+            <TableComponent
+              data={data}
+              isSubmited={isSubmited}
+              tabledata={handletabledata}
+              tablesummaryfields={e => tablesummaryfields(e, data)}
+              tablefreeformfield={tablefreeformfield}
+              formAction={formData?.form?.sFormAction}
+              formdata={formData}
+            />
+          );
+        case "BUTTON":
+          return renderButtonComponent(data, handleclickdata);
+
+        case "DATAGRID":
+          return (
+            <Grid item {...data?.grid_props}>
+              <DataGridComponent
+                formdata={data}
+                formDetails={formData?.form}
+                {...data?.component?.sProps}
+              />
+            </Grid>
+          );
+          case "DATATABLE":  {/* rfg 8 May 23 */}
+          return (
+            <Grid item {...data?.grid_props}>
+              <DataTableComponent
+                formdata={data}
+                formDetails={formData?.form}
+                recordData = {recordData}
+                {...data?.component?.sProps}
+              />
+            </Grid>
+          ); 
+        case "BOX": {
+          return (
+            <Grid item {...data?.grid_props}>
+              <Box {...data?.component?.sProps}>
+                <Grid container {...data?.component?.options?.others1}>
+                  {renderComponent(data?.child)}
+                </Grid>
+              </Box>
+            </Grid>
+          );
+        }
+        case "PAPER": {
+          return (
+            <Grid item {...data.grid_props}>
+              <Paper {...data?.component?.sProps}>
+                <Grid container {...data?.component?.options?.others1}>
+                  {renderComponent(data?.child)}
+                </Grid>
+              </Paper>
+            </Grid>
+          );
+        }
+
+        case "CARD": {
+          return renderCardComponent(data, handleclickdata);
+        }
+
+        case "GLOBALTEXT": {
+          return renderglobaltextcomponent(data, getFieldValue, format);
+        }
+        case "DIVIDER": {
+          return (
+            <Grid item {...data.grid_props}>
+              <Divider {...data?.component?.sProps}>{renderComponent(data?.child)}</Divider>
+            </Grid>
+          );
+        }
+        case "STACK":
+          return (
+            <Grid item {...data?.grid_props}>
+              <Stack {...data?.component?.sProps}>
+                <Grid container {...data?.component?.options?.others1}>
+                  {data?.child?.map(item1 => {
+                    switch (item1?.component?.sType) {
+                      case "TYPOGRAPHY":
+                        return renderTypography(item1);
+                      default:
+                        return null;
+                    }
+                  })}
+                </Grid>
+              </Stack>
+            </Grid>
+          );
+        case "ICON": {
+          const icon = data?.component?.sIcon?.replace("Icon", "");
+          return (
+            <Grid item {...data?.grid_props}>
+              <Icon id={data?.component?.sName} {...data?.component?.sProps} iconName={icon} />
+            </Grid>
+          );
+        }
+        case "AVATAR": {
+          switch (data?.component?.sAdornType) {
+            case "IMG":
+            case "TEXT":
+            case "ICON":
+              return avatarcomponent(data);
+            default:
+              return null;
+          }
+        }
+        case "VARTEXT": {
+          return rendervartextcomponent(data, varValue, format);
+        }
+        case "IMG": {
+          let srcImg = `${baseURL}${data?.data?.sDataSource}`;
+          const sProps = {
+            ...data?.component?.sProps
+          };
+
+          const { sx } = sProps;
+          const mappedSx = {
+            width: parseInt(sx.width),
+            height: parseInt(sx.height)
+          };
+          return (
+            <Grid item {...data?.grid_props}>
+              <Box
+                component="img"
+                src={srcImg}
+                alt={data?.component?.sDefaultValue}
+                sx={mappedSx}
+              />
+            </Grid>
+          );
+        }
+        case "AVATARGROUP": {
+          return (
+            <Grid item {...data.grid_props}>
+              <AvatarGroup {...data?.component?.sProps}>
+                {data?.child?.map(item1 => {
+                  if (item1?.component?.sType === "AVATAR") {
+                    switch (item1?.component?.sAdornType) {
+                      case "IMG":
+                      case "TEXT":
+                      case "ICON":
+                        return avatarcomponent(item1);
+                      default:
+                        return null;
+                    }
+                  }
+                })}
+              </AvatarGroup>
+            </Grid>
+          );
+        }
+        case "INPUT": {
+          return (
+            <Input
+              {...data?.component?.sProps}
+              name={data?.component?.sName}
+              defaultValue={data?.component?.sDefaultValue}
+            />
+          );
+        }
+        case "TAB":
+          return <BasicTabs data={data} renderComponent={renderComponent} />;
+        case "BUTTONGROUP": {
+          return (
+            <Grid item {...data.grid_props}>
+              <ButtonGroup id={data?.component?.sName} {...data?.component?.sProps}>
+                {data?.child?.map(item1 => {
+                  switch (item1?.component?.sType) {
+                    case "BUTTON":
+                      return renderButtonComponent(item1, handleclickdata);
+
+                    default:
+                      return null;
+                  }
+                })}
+              </ButtonGroup>
+            </Grid>
+          );
+        }
+        case "BADGE": {
+          const icon = data?.component?.sIcon?.replace("Icon", "");
+          return data?.component?.sType === "BADGE" ? (
+            <Grid item {...data?.grid_props}>
+              <Badge {...data?.component?.sProps}>
+                <Icon {...data?.component?.options?.others1} iconName={icon} />
+              </Badge>
+            </Grid>
+          ) : null;
+        }
+
+        case "CHIP":
+          // return renderchipcomponent(data)
+          return (
+            <Grid item {...data.grid_props}>
+              {(() => {
+                switch (data?.component?.sAdornType) {
+                  case "NONE":
+                    if (data.component.sName === "sStatus") {
+                      const foundItem = format.data.find(item => item?.sFieldFormat);
+                      const fieldFormat = foundItem ? JSON.parse(foundItem.sFieldFormat) : {};
+
+                      return (
+                        <Grid item {...data?.component?.grid_props}>
+                          <Chip label={textValue[data.component.sName]} {...fieldFormat} />
+                        </Grid>
+                      );
+                    }
+                    break;
+
+                  case "IMG":
+                    return (
+                      <Grid item {...data?.component?.grid_props}>
+                        <Chip
+                          avatar={
+                            <Avatar
+                              alt={data?.data?.sAction}
+                              src={`${serverAddress}${data?.data?.sDataSource}`}
+                              {...data?.component?.sProps}
+                            />
+                          }
+                          label={textValue[data.component.sName]}
+                        />
+                      </Grid>
+                    );
+                  case "ICON":
+                    return (
+                      <Grid item {...data?.component?.grid_props}>
+                        <Chip
+                          icon={<Icon iconName={data?.component?.sIcon?.replace("Icon", "")} />}
+                          label={textValue[data.component.sName]}
+                          {...data?.component?.sProps}
+                        />
+                      </Grid>
+                    );
+                  case "LINK":
+                    return (
+                      <Grid item {...data?.component?.grid_props}>
+                        <Chip
+                          label={textValue[data.component.sName]}
+                          onClick={() => navigate(data?.component?.options?.others2)}
+                        />
+                      </Grid>
+                    );
+                  default:
+                    return null;
+                }
+              })()}
+            </Grid>
+          );
+
+        case "LISTITEMS": {
+          return (
+            <Grid item {...data.grid_props}>
+              {(() => {
+                switch (data?.component?.options?.mode) {
+                  case "DEFAULT":
+                    return (
+                      <DefaultComponent
+                        dataDefault={data?.data?.sDataSource}
+                        data={data}
+                        format={format}
+                      />
+                    );
+                  case "AVATAR":
+                    return (
+                      <ListAvatar
+                        dataDefault={data?.data?.sDataSource}
+                        data={data}
+                        format={format}
+                      />
+                    );
+                  case "ICON":
+                    return (
+                      <ListIcon dataDefault={data?.data?.sDataSource} data={data} format={format} />
+                    );
+                  case "LISTAVATARICON":
+                    return (
+                      <ListAvatarIconItem
+                        dataDefault={data?.data?.sDataSource}
+                        data={data}
+                        format={format}
+                      />
+                    );
+                  default:
+                    return null;
+                }
+              })()}
+            </Grid>
+          );
+        }
+        case "DIALOG":
+          return renderdialogboxcomponent(data, open, handleClose, dialogMode, renderComponent);
+
+        default:
+          return null;
+      }
+    });
+  };
+  return (
+    <>
+      {[formData].map(item => {
+        return (
+          <Grid container {...formData?.form?.sGridProps} key={formData?.form?.id}>
+            {globalError && <MessageError message={globalError} />}
+            <Grid item md={12}>
+              <Breadcrumbs aria-label="breadcrumb">
+                <Link underline="hover" color="inherit" href="/">
+                  {item?.form?.sBreadCrumbs}
+                </Link>
+              </Breadcrumbs>
+            </Grid>
+            <Grid item md={12} py={1}>
+              <Typography {...item?.form?.sProps}>{item?.form?.sTitle}</Typography>
+            </Grid>
+            <Grid container>
+              <FormBar toggle={0} menu={item?.form?.sMenu} />  {/* rfg 23 apr 23 */}
+            </Grid>
+            {resultData === "ERROR" && <CustomAlert severity="error" message={successMessage} />}
+            {resultData === "WARNING" && (
+              <CustomAlert severity="warning" message={successMessage} />
+            )}
+            {resultData === "New application version is available" && (
+              <CustomAlert severity="info" message={successMessage} />
+            )}
+            {resultData === "OK" && <CustomAlert severity="success" message={successMessage} />}
+            {renderComponent(item?.details)}
+          </Grid>
+        );
+      })}
+    </>
+  );
+};
+
+export default Form;
