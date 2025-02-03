@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../BITSEnterpriseScreens"
+		},
+		{
+			"path": "../BITSEnterpriseTest"
+		}
+	],
+	"settings": {}
+}

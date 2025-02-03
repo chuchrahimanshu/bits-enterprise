@@ -1,0 +1,107 @@
+{
+  "name": "BITS Enterprise",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.18",
+    "@mui/material": "^5.14.18",
+    "@mui/x-charts": "^7.23.0",
+    "@mui/x-data-grid": "^6.18.1",
+    "@mui/x-data-grid-generator": "^7.11.0",
+    "@mui/x-data-grid-pro": "^6.18.1",
+    "@mui/x-date-pickers": "^6.3.1",
+    "@react-pdf-viewer/core": "^3.12.0",
+    "@react-pdf-viewer/default-layout": "^3.12.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.4.0",
+    "dayjs": "^1.11.7",
+    "dotenv": "^16.3.1",
+    "formik": "^2.4.5",
+    "http-proxy-middleware": "^2.0.6",
+    "i": "^0.3.7",
+    "jspdf": "^2.5.1",
+    "lodash": "^4.17.21",
+    "npm": "^10.2.3",
+    "pdf-viewer-reactjs": "^2.2.3",
+    "pdfjs-dist": "^2.16.105",
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^14.2.3",
+    "react-pdf": "^8.0.2",
+    "react-pdf-js": "^5.1.0",
+    "react-redux": "^8.0.5",
+    "react-ripples": "^2.2.1",
+    "react-router-dom": "^6.11.1",
+    "react-scripts": "5.0.1",
+    "react-toastify": "^10.0.5",
+    "redux": "^4.2.1",
+    "sprintf-js": "^1.1.3",
+    "tailwindcss": "^3.3.3",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5",
+    "yup": "^1.3.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --watchAll=false",
+    "eject": "react-scripts eject",
+    "lint-staged": "lint-staged",
+    "precommit": "lint-staged && npm test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "jsx-a11y/anchor-is-valid": "off",
+      "no-unused-vars": "off"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{json,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "eslint": "^8.40.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.32.2",
+    "husky": "^8.0.3",
+    "jest": "^27.5.1",
+    "lint-staged": "^13.2.2",
+    "pre-commit": "^1.2.2",
+    "prettier": "^2.8.8"
+  }
+}
